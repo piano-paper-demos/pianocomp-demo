@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Piano Accompaniment Generation (Demo)</title>
+    <script src="https://cdn.jsdelivr.net/combine/npm/tone@14.7.58,npm/@magenta/music@1.23.1/es6/core.js,npm/focus-visible@5,npm/html-midi-player@1.5.0"></script>
+    <style>
+      :root {
+        --ink: #0f172a;
+        --muted: #475569;
+        --border: #d7dde6;
+        --bg: #ffffff;
+        --tab-bg: #f5f7fb;
+        --tab-bg-active: #e8f1ff;
+        --tab-border-active: #79a7ff;
+      }
+
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+        margin: 0;
+        background: #fbfbfd;
+        color: var(--ink);
+        line-height: 1.5;
+      }
+
+      .container {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 20px 18px 56px 18px;
+      }
+
+      h1 {
+        margin: 6px 0 10px 0;
+        font-size: 26px;
+        letter-spacing: -0.02em;
+      }
+
+      h2 {
+        margin: 26px 0 10px 0;
+        font-size: 18px;
+      }
+
+      h3 {
+        margin: 18px 0 8px 0;
+        font-size: 15px;
+      }
+
+      p {
+        margin: 0 0 10px 0;
+        color: var(--muted);
+      }
+
+      .panel {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px 14px 12px 14px;
+      }
+
+      .audio-player {
+        max-width: 360px;
+        width: 100%;
+        height: 32px;
+        vertical-align: middle;
+      }
+
+      .demo-links {
+        margin-left: 8px;
+        white-space: nowrap;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .demo-links a {
+        color: inherit;
+      }
+
+      .piano-roll-demo {
+        margin-top: 10px;
+        max-width: 820px;
+      }
+
+      .piano-roll-demo midi-player,
+      .piano-roll-demo midi-visualizer {
+        display: block;
+        width: 100%;
+      }
+
+      .piano-roll-demo midi-visualizer {
+        height: 320px;
+        border: 1px solid var(--border);
+        background: #fff;
+        overflow: hidden;
+        box-sizing: border-box;
+      }
+
+      .piano-roll-demo midi-visualizer > div {
+        height: 100%;
+      }
+
+      .piano-roll-demo midi-visualizer > div.piano-roll-visualizer {
+        overflow: auto;
+      }
+
+      .piano-roll-demo midi-visualizer svg {
+        display: block;
+      }
+
+      .style-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin: 8px 0 10px 0;
+      }
+
+      .song-tabs {
+        margin-top: 0;
+      }
+
+      .style-tab {
+        border: 1px solid #c9c9c9;
+        background: var(--tab-bg);
+        color: #222;
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 12px;
+        cursor: pointer;
+      }
+
+      .style-tab.active {
+        background: var(--tab-bg-active);
+        border-color: var(--tab-border-active);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Piano Accompaniment Generation</h1>
+      <p class="panel">
+        This page provides audio (MP3) demos with corresponding MIDI files and interactive piano-roll visualizations.
+        All MIDI files are time-aligned to the vocal track and preserve articulation from real human performances. Because the performances are unquantized, note onsets will not fall exactly on a rigid time grid—this is expected and reflects natural timing and expression.
+      </p>
+
+      <h2>Demo with Audio for Fair Style-Contrast Evaluation on the Same Song (Vocal Track Included for Alignment Checking)</h2>
+      <div class="panel" id="style-demo">
+        <div class="style-tabs" role="tablist" aria-label="Accompaniment styles">
+          <button type="button" class="style-tab active" data-style="arp" aria-selected="true">Arpeggio</button>
+          <button type="button" class="style-tab" data-style="block" aria-selected="false">Block Chords</button>
+          <button type="button" class="style-tab" data-style="busy" aria-selected="false">Busy</button>
+          <button type="button" class="style-tab" data-style="dense" aria-selected="false">Dense</button>
+          <button type="button" class="style-tab" data-style="fast" aria-selected="false">Fast</button>
+          <button type="button" class="style-tab" data-style="gentle" aria-selected="false">Gentle</button>
+          <button type="button" class="style-tab" data-style="loud" aria-selected="false">Loud</button>
+          <button type="button" class="style-tab" data-style="ostinato" aria-selected="false">Ostinato</button>
+          <button type="button" class="style-tab" data-style="quiet" aria-selected="false">Quiet</button>
+          <button type="button" class="style-tab" data-style="slow" aria-selected="false">Slow</button>
+          <button type="button" class="style-tab" data-style="sparse" aria-selected="false">Sparse</button>
+          <button type="button" class="style-tab" data-style="stride" aria-selected="false">Stride</button>
+        </div>
+
+        <div>
+          <audio id="style-mp3-audio" class="audio-player" controls="controls" preload="none">
+            <source id="style-mp3-source" src="music/acc-pro/mp3/arp.mp3" type="audio/mpeg" />
+            <a id="style-mp3-fallback" href="music/acc-pro/mp3/arp.mp3">MP3</a>
+          </audio>
+          <span class="demo-links">
+            | <a id="style-midi-link" href="music/acc-pro/midi/arp.mid">MIDI</a>
+          </span>
+        </div>
+
+        <div class="piano-roll-demo">
+          <midi-player id="style-midi-player" sound-font="https://storage.googleapis.com/magentadata/js/soundfonts/sgm_plus" visualizer="#style-visualizer"></midi-player>
+          <midi-visualizer id="style-visualizer" type="piano-roll"></midi-visualizer>
+        </div>
+      </div>
+
+      <h2>Five Songs Used in the Paper Submission (60 MIDI Files: 12 Variations per Song)</h2>
+      <div class="panel" id="five-songs-demo">
+        <div class="style-tabs song-tabs" role="tablist" aria-label="Songs">
+          <button type="button" class="style-tab active" data-song="dngl" aria-selected="true">Song 1</button>
+          <button type="button" class="style-tab" data-song="gsn" aria-selected="false">Song 2</button>
+          <button type="button" class="style-tab" data-song="lbkch" aria-selected="false">Song 3</button>
+          <button type="button" class="style-tab" data-song="rsj" aria-selected="false">Song 4</button>
+          <button type="button" class="style-tab" data-song="toosweet" aria-selected="false">Song 5</button>
+        </div>
+
+        <div class="style-tabs" role="tablist" aria-label="Styles (per song)">
+          <button type="button" class="style-tab active" data-style="arp" aria-selected="true">Arpeggio</button>
+          <button type="button" class="style-tab" data-style="block" aria-selected="false">Block Chords</button>
+          <button type="button" class="style-tab" data-style="busy" aria-selected="false">Busy</button>
+          <button type="button" class="style-tab" data-style="dense" aria-selected="false">Dense</button>
+          <button type="button" class="style-tab" data-style="fast" aria-selected="false">Fast</button>
+          <button type="button" class="style-tab" data-style="gentle" aria-selected="false">Gentle</button>
+          <button type="button" class="style-tab" data-style="loud" aria-selected="false">Loud</button>
+          <button type="button" class="style-tab" data-style="ostinato" aria-selected="false">Ostinato</button>
+          <button type="button" class="style-tab" data-style="quiet" aria-selected="false">Quiet</button>
+          <button type="button" class="style-tab" data-style="slow" aria-selected="false">Slow</button>
+          <button type="button" class="style-tab" data-style="sparse" aria-selected="false">Sparse</button>
+          <button type="button" class="style-tab" data-style="stride" aria-selected="false">Stride</button>
+        </div>
+
+        <div>
+          <span class="demo-links">
+            <a id="five-midi-link" href="music/acc-pro/5songs/dngl/arp.mid">MIDI</a>
+          </span>
+        </div>
+
+        <div class="piano-roll-demo">
+          <midi-player id="five-midi-player" sound-font="https://storage.googleapis.com/magentadata/js/soundfonts/sgm_plus" visualizer="#five-visualizer"></midi-player>
+          <midi-visualizer id="five-visualizer" type="piano-roll"></midi-visualizer>
+        </div>
+      </div>
+    </div>
+
+    <script type="text/javascript">
+      (function () {
+        document.addEventListener('DOMContentLoaded', function () {
+          var SVG_NS = 'http://www.w3.org/2000/svg';
+          var visualizerState = new WeakMap();
+
+          function getUrlToNoteSequence() {
+            var magentaCore = window.core || null;
+            var magentaMm = window.mm || null;
+            return (
+              (magentaCore && magentaCore.urlToNoteSequence) ||
+              (magentaMm && magentaMm.urlToNoteSequence) ||
+              null
+            );
+          }
+
+          function forcePiano(ns) {
+            try {
+              if (!ns || !ns.notes) return;
+              for (var i = 0; i < ns.notes.length; i++) {
+                ns.notes[i].program = 0;
+                ns.notes[i].isDrum = false;
+              }
+            } catch (e) {}
+          }
+
+          function getQpm(ns) {
+            try {
+              if (ns && ns.tempos && ns.tempos.length && typeof ns.tempos[0].qpm === 'number') return ns.tempos[0].qpm;
+            } catch (e) {}
+            return null;
+          }
+
+          function getPianoRollSvg(visualizerEl) {
+            if (!visualizerEl) return null;
+            return visualizerEl.querySelector('div.piano-roll-visualizer svg') || visualizerEl.querySelector('svg');
+          }
+
+          function getSvgPxSize(svg) {
+            if (!svg) return null;
+            var w = 0;
+            var h = 0;
+            try {
+              if (svg.style && svg.style.width) w = parseFloat(svg.style.width);
+              if (svg.style && svg.style.height) h = parseFloat(svg.style.height);
+            } catch (e) {}
+            if (!w || !h) {
+              try {
+                var bb = svg.getBBox();
+                w = w || bb.width;
+                h = h || bb.height;
+              } catch (e2) {}
+            }
+            if (!w || !h) {
+              try {
+                var r = svg.getBoundingClientRect();
+                w = w || r.width;
+                h = h || r.height;
+              } catch (e3) {}
+            }
+            if (!w || !h) return null;
+            return { width: w, height: h };
+          }
+
+          function detectMelodyInstrument(ns) {
+            try {
+              if (!ns || !ns.notes || !ns.notes.length) return null;
+              var byInstrument = {};
+              for (var i = 0; i < ns.notes.length; i++) {
+                var n = ns.notes[i];
+                var inst = (typeof n.instrument === 'number') ? n.instrument : 0;
+                if (!byInstrument[inst]) byInstrument[inst] = [];
+                byInstrument[inst].push(n);
+              }
+              var instKeys = Object.keys(byInstrument);
+              if (instKeys.length < 2) return null;
+
+              function polyphonyScore(notes) {
+                var sorted = notes.slice().sort(function (a, b) { return (a.startTime || 0) - (b.startTime || 0); });
+                var overlaps = 0;
+                var currentEnd = -1;
+                for (var i = 0; i < sorted.length; i++) {
+                  var s = sorted[i].startTime || 0;
+                  var e = sorted[i].endTime || 0;
+                  if (s < currentEnd) overlaps += 1;
+                  if (e > currentEnd) currentEnd = e;
+                }
+                return overlaps / Math.max(1, sorted.length);
+              }
+
+              var bestInst = null;
+              var bestScore = -1e9;
+              for (var k = 0; k < instKeys.length; k++) {
+                var ik = instKeys[k];
+                var notes = byInstrument[ik];
+                var sumPitch = 0;
+                for (var j = 0; j < notes.length; j++) sumPitch += (notes[j].pitch || 0);
+                var avgPitch = sumPitch / Math.max(1, notes.length);
+                var poly = polyphonyScore(notes);
+                var score = avgPitch - poly * 80 - notes.length * 0.005;
+                if (score > bestScore) {
+                  bestScore = score;
+                  bestInst = parseInt(ik, 10);
+                }
+              }
+              return (bestInst === null || isNaN(bestInst)) ? null : bestInst;
+            } catch (e) {
+              return null;
+            }
+          }
+
+          function ensureGrid(visualizerEl) {
+            var state = visualizerState.get(visualizerEl);
+            if (!state) return;
+
+            var svg = getPianoRollSvg(visualizerEl);
+            if (!svg) return;
+
+            var size = getSvgPxSize(svg);
+            if (!size) return;
+
+            var cfg = (visualizerEl && visualizerEl.config) ? visualizerEl.config : {};
+            var noteHeight = (cfg && typeof cfg.noteHeight === 'number') ? cfg.noteHeight : 6;
+            var pixelsPerTimeStep = (cfg && typeof cfg.pixelsPerTimeStep === 'number') ? cfg.pixelsPerTimeStep : 30;
+
+            var qpm = getQpm(state.ns);
+            var quarterSec = qpm ? (60 / qpm) : 1.0;
+            var majorSec = quarterSec;
+            var minorSec = quarterSec / 4;
+            if (!isFinite(minorSec) || minorSec <= 0) minorSec = 0.25;
+            if (!isFinite(majorSec) || majorSec <= 0) majorSec = 1.0;
+
+            var minorPx = Math.max(6, minorSec * pixelsPerTimeStep);
+            var majorPx = Math.max(12, majorSec * pixelsPerTimeStep);
+            var octavePx = Math.max(12, noteHeight * 12);
+
+            var defs = svg.querySelector('defs');
+            if (!defs) {
+              defs = document.createElementNS(SVG_NS, 'defs');
+              svg.insertBefore(defs, svg.firstChild);
+            }
+
+            var prefix = state.prefix;
+            var minorId = prefix + '-grid-minor';
+            var majorId = prefix + '-grid-major';
+
+            var minorPattern = svg.querySelector('#' + minorId);
+            if (!minorPattern) {
+              minorPattern = document.createElementNS(SVG_NS, 'pattern');
+              minorPattern.setAttribute('id', minorId);
+              minorPattern.setAttribute('patternUnits', 'userSpaceOnUse');
+              defs.appendChild(minorPattern);
+
+              var minorV = document.createElementNS(SVG_NS, 'path');
+              minorV.setAttribute('d', 'M 0 0 V ' + noteHeight);
+              minorV.setAttribute('stroke', 'rgba(0,0,0,0.10)');
+              minorV.setAttribute('stroke-width', '1');
+              minorPattern.appendChild(minorV);
+
+              var minorH = document.createElementNS(SVG_NS, 'path');
+              minorH.setAttribute('d', 'M 0 0 H ' + minorPx);
+              minorH.setAttribute('stroke', 'rgba(0,0,0,0.06)');
+              minorH.setAttribute('stroke-width', '1');
+              minorPattern.appendChild(minorH);
+            }
+            minorPattern.setAttribute('width', String(minorPx));
+            minorPattern.setAttribute('height', String(noteHeight));
+
+            var majorPattern = svg.querySelector('#' + majorId);
+            if (!majorPattern) {
+              majorPattern = document.createElementNS(SVG_NS, 'pattern');
+              majorPattern.setAttribute('id', majorId);
+              majorPattern.setAttribute('patternUnits', 'userSpaceOnUse');
+              defs.appendChild(majorPattern);
+
+              var majorV = document.createElementNS(SVG_NS, 'path');
+              majorV.setAttribute('d', 'M 0 0 V ' + octavePx);
+              majorV.setAttribute('stroke', 'rgba(0,0,0,0.18)');
+              majorV.setAttribute('stroke-width', '1');
+              majorPattern.appendChild(majorV);
+
+              var majorH = document.createElementNS(SVG_NS, 'path');
+              majorH.setAttribute('d', 'M 0 0 H ' + majorPx);
+              majorH.setAttribute('stroke', 'rgba(0,0,0,0.14)');
+              majorH.setAttribute('stroke-width', '1');
+              majorPattern.appendChild(majorH);
+            }
+            majorPattern.setAttribute('width', String(majorPx));
+            majorPattern.setAttribute('height', String(octavePx));
+
+            var gridGroupId = prefix + '-grid-group';
+            var gridGroup = svg.querySelector('#' + gridGroupId);
+            if (!gridGroup) {
+              gridGroup = document.createElementNS(SVG_NS, 'g');
+              gridGroup.setAttribute('id', gridGroupId);
+              gridGroup.setAttribute('pointer-events', 'none');
+
+              var minorRect = document.createElementNS(SVG_NS, 'rect');
+              minorRect.setAttribute('id', prefix + '-grid-rect-minor');
+              minorRect.setAttribute('x', '0');
+              minorRect.setAttribute('y', '0');
+              minorRect.setAttribute('fill', 'url(#' + minorId + ')');
+              gridGroup.appendChild(minorRect);
+
+              var majorRect = document.createElementNS(SVG_NS, 'rect');
+              majorRect.setAttribute('id', prefix + '-grid-rect-major');
+              majorRect.setAttribute('x', '0');
+              majorRect.setAttribute('y', '0');
+              majorRect.setAttribute('fill', 'url(#' + majorId + ')');
+              gridGroup.appendChild(majorRect);
+
+              var firstNote = svg.querySelector('rect.note');
+              svg.insertBefore(gridGroup, firstNote || svg.firstChild);
+            }
+
+            var minorRectEl = svg.querySelector('#' + prefix + '-grid-rect-minor');
+            var majorRectEl = svg.querySelector('#' + prefix + '-grid-rect-major');
+            if (minorRectEl) {
+              minorRectEl.setAttribute('width', String(size.width));
+              minorRectEl.setAttribute('height', String(size.height));
+            }
+            if (majorRectEl) {
+              majorRectEl.setAttribute('width', String(size.width));
+              majorRectEl.setAttribute('height', String(size.height));
+            }
+          }
+
+          function watchVisualizer(visualizerEl, prefix) {
+            if (!visualizerEl) return;
+            if (!visualizerState.get(visualizerEl)) {
+              visualizerState.set(visualizerEl, { ns: null, prefix: prefix });
+            }
+            if (visualizerEl.__gridObserver) return;
+            try {
+              visualizerEl.__gridObserver = new MutationObserver(function () {
+                ensureGrid(visualizerEl);
+              });
+              visualizerEl.__gridObserver.observe(visualizerEl, { childList: true, subtree: true });
+            } catch (e) {}
+          }
+
+          function loadMidiInto(midiUrl, playerEl, visualizerEl, prefix, options) {
+            options = options || {};
+            var urlToNoteSequence = getUrlToNoteSequence();
+            if (!playerEl || !visualizerEl) return;
+
+            watchVisualizer(visualizerEl, prefix);
+
+            if (!urlToNoteSequence) {
+              playerEl.setAttribute('src', midiUrl);
+              visualizerEl.setAttribute('src', midiUrl);
+              return;
+            }
+
+            urlToNoteSequence(midiUrl).then(function (ns) {
+              forcePiano(ns);
+
+              if (options.removeMelody) {
+                var melodyInstrument = detectMelodyInstrument(ns);
+                if (melodyInstrument !== null && melodyInstrument !== undefined) {
+                  try {
+                    var filtered = [];
+                    for (var i = 0; i < ns.notes.length; i++) {
+                      if (ns.notes[i].instrument !== melodyInstrument) filtered.push(ns.notes[i]);
+                    }
+                    ns.notes = filtered;
+                  } catch (e) {}
+                }
+              }
+
+              try {
+                visualizerEl.config = {
+                  noteHeight: 6,
+                  noteSpacing: 1,
+                  pixelsPerTimeStep: 30
+                };
+              } catch (e) {}
+
+              playerEl.noteSequence = ns;
+              visualizerEl.noteSequence = ns;
+
+              var state = visualizerState.get(visualizerEl);
+              if (state) state.ns = ns;
+
+              var tries = 40;
+              (function poll() {
+                ensureGrid(visualizerEl);
+                tries -= 1;
+                if (tries > 0) setTimeout(poll, 50);
+              })();
+            });
+          }
+
+          function initStyleTabs() {
+            var styles = {
+              arp: { mp3: 'music/acc-pro/mp3/arp.mp3', midi: 'music/acc-pro/midi/arp.mid' },
+              block: { mp3: 'music/acc-pro/mp3/block.mp3', midi: 'music/acc-pro/midi/block.mid' },
+              busy: { mp3: 'music/acc-pro/mp3/busy.mp3', midi: 'music/acc-pro/midi/busy.mid' },
+              dense: { mp3: 'music/acc-pro/mp3/dense.mp3', midi: 'music/acc-pro/midi/dense.mid' },
+              fast: { mp3: 'music/acc-pro/mp3/fast.mp3', midi: 'music/acc-pro/midi/fast.mid' },
+              gentle: { mp3: 'music/acc-pro/mp3/gentle.mp3', midi: 'music/acc-pro/midi/gentle.mid' },
+              loud: { mp3: 'music/acc-pro/mp3/loud.mp3', midi: 'music/acc-pro/midi/loud.mid' },
+              ostinato: { mp3: 'music/acc-pro/mp3/ostinato.mp3', midi: 'music/acc-pro/midi/ostinato.mid' },
+              quiet: { mp3: 'music/acc-pro/mp3/quiet.mp3', midi: 'music/acc-pro/midi/quiet.mid' },
+              slow: { mp3: 'music/acc-pro/mp3/slow.mp3', midi: 'music/acc-pro/midi/slow.mid' },
+              sparse: { mp3: 'music/acc-pro/mp3/sparse.mp3', midi: 'music/acc-pro/midi/sparse.mid' },
+              stride: { mp3: 'music/acc-pro/mp3/stride.mp3', midi: 'music/acc-pro/midi/stride.mid' }
+            };
+
+            var root = document.getElementById('style-demo');
+            if (!root) return;
+
+            var audio = document.getElementById('style-mp3-audio');
+            var audioSource = document.getElementById('style-mp3-source');
+            var mp3Fallback = document.getElementById('style-mp3-fallback');
+            var midiLink = document.getElementById('style-midi-link');
+            var styleMidiPlayer = document.getElementById('style-midi-player');
+            var styleVisualizer = document.getElementById('style-visualizer');
+            if (!audio || !audioSource || !mp3Fallback || !midiLink || !styleMidiPlayer || !styleVisualizer) return;
+
+            function loadStyle(styleKey) {
+              var entry = styles[styleKey];
+              if (!entry) return;
+
+              audio.pause();
+              audio.currentTime = 0;
+              audioSource.setAttribute('src', entry.mp3);
+              mp3Fallback.setAttribute('href', entry.mp3);
+              midiLink.setAttribute('href', entry.midi);
+              audio.load();
+
+              loadMidiInto(entry.midi, styleMidiPlayer, styleVisualizer, 'style-demo', { removeMelody: true });
+            }
+
+            var tabs = root.querySelectorAll('.style-tab');
+            for (var t = 0; t < tabs.length; t++) {
+              tabs[t].addEventListener('click', function () {
+                var key = this.getAttribute('data-style');
+                for (var k = 0; k < tabs.length; k++) {
+                  tabs[k].classList.remove('active');
+                  tabs[k].setAttribute('aria-selected', 'false');
+                }
+                this.classList.add('active');
+                this.setAttribute('aria-selected', 'true');
+                loadStyle(key);
+              });
+            }
+
+            loadStyle('arp');
+          }
+
+          initStyleTabs();
+
+          function initFiveSongs() {
+            var root = document.getElementById('five-songs-demo');
+            if (!root) return;
+
+            var fiveMidiLink = document.getElementById('five-midi-link');
+            var fiveMidiPlayer = document.getElementById('five-midi-player');
+            var fiveVisualizer = document.getElementById('five-visualizer');
+            if (!fiveMidiLink || !fiveMidiPlayer || !fiveVisualizer) return;
+
+            var currentSong = 'dngl';
+            var currentStyle = 'arp';
+
+            function midiUrl(song, style) {
+              return 'music/acc-pro/5songs/' + song + '/' + style + '.mid';
+            }
+
+            function load() {
+              var url = midiUrl(currentSong, currentStyle);
+              fiveMidiLink.setAttribute('href', url);
+              loadMidiInto(url, fiveMidiPlayer, fiveVisualizer, 'five-songs', { removeMelody: true });
+            }
+
+            function setActive(tabList, attrName, attrValue) {
+              var tabs = tabList.querySelectorAll('.style-tab');
+              for (var i = 0; i < tabs.length; i++) {
+                var isActive = tabs[i].getAttribute(attrName) === attrValue;
+                tabs[i].classList.toggle('active', isActive);
+                tabs[i].setAttribute('aria-selected', isActive ? 'true' : 'false');
+              }
+            }
+
+            var songTabList = root.querySelector('.song-tabs');
+            var styleTabLists = root.querySelectorAll('.style-tabs');
+            var styleTabList = (styleTabLists.length >= 2) ? styleTabLists[1] : null;
+
+            if (songTabList) {
+              var songTabs = songTabList.querySelectorAll('.style-tab');
+              for (var s = 0; s < songTabs.length; s++) {
+                songTabs[s].addEventListener('click', function () {
+                  currentSong = this.getAttribute('data-song') || currentSong;
+                  setActive(songTabList, 'data-song', currentSong);
+                  load();
+                });
+              }
+            }
+
+            if (styleTabList) {
+              var stTabs = styleTabList.querySelectorAll('.style-tab');
+              for (var t = 0; t < stTabs.length; t++) {
+                stTabs[t].addEventListener('click', function () {
+                  currentStyle = this.getAttribute('data-style') || currentStyle;
+                  setActive(styleTabList, 'data-style', currentStyle);
+                  load();
+                });
+              }
+            }
+
+            load();
+          }
+
+          initFiveSongs();
+        });
+      })();
+    </script>
+  </body>
+</html>
