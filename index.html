@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Piano Accompaniment Generation (Demo)</title>
+    <title>Piano Accompaniment Generation (Anonymous Submission)</title>
     <script src="https://cdn.jsdelivr.net/combine/npm/tone@14.7.58,npm/@magenta/music@1.23.1/es6/core.js,npm/focus-visible@5,npm/html-midi-player@1.5.0"></script>
     <style>
       :root {
@@ -136,48 +136,16 @@
   </head>
   <body>
     <div class="container">
-      <h1>Piano Accompaniment Generation</h1>
+      <h1>Piano Accompaniment Generation (Anonymous Submission)</h1>
       <p class="panel">
-        This page provides audio (MP3) demos with corresponding MIDI files and interactive piano-roll visualizations.
-        All MIDI files are time-aligned to the vocal track and preserve articulation from real human performances. Because the performances are unquantized, note onsets will not fall exactly on a rigid time grid—this is expected and reflects natural timing and expression.
+        This page provides MIDI files and interactive piano-roll visualizations for the associated research paper.
       </p>
       <p class="panel">
-        Copyright notice: I do not claim ownership of any underlying song compositions or vocal recordings used in these demos. These materials are provided solely for academic and research purposes consistent with fair use. Full-length excerpts (vocal track, melody, and accompaniment arrangements) are included because the research evaluates accompaniment coherence and section-level structure across entire songs.
+        <strong>Performance Note:</strong> All MIDI data preserves original human articulation and timing. These performances are unquantized; note onsets reflect natural expression and will not align to a rigid grid.
       </p>
-
-      <h2>Demo with Audio for Fair Style-Contrast Evaluation on the Same Song (Vocal Track Included for Alignment Checking)</h2>
-      <p>The vocal track is reduced by 15 dB to make the piano accompaniment easier to evaluate.</p>
-      <div class="panel" id="style-demo">
-        <div class="style-tabs" role="tablist" aria-label="Accompaniment styles">
-          <button type="button" class="style-tab active" data-style="arp" aria-selected="true">Arpeggio</button>
-          <button type="button" class="style-tab" data-style="block" aria-selected="false">Block Chords</button>
-          <button type="button" class="style-tab" data-style="busy" aria-selected="false">Busy</button>
-          <button type="button" class="style-tab" data-style="dense" aria-selected="false">Dense</button>
-          <button type="button" class="style-tab" data-style="fast" aria-selected="false">Fast</button>
-          <button type="button" class="style-tab" data-style="gentle" aria-selected="false">Gentle</button>
-          <button type="button" class="style-tab" data-style="loud" aria-selected="false">Loud</button>
-          <button type="button" class="style-tab" data-style="ostinato" aria-selected="false">Ostinato</button>
-          <button type="button" class="style-tab" data-style="quiet" aria-selected="false">Quiet</button>
-          <button type="button" class="style-tab" data-style="slow" aria-selected="false">Slow</button>
-          <button type="button" class="style-tab" data-style="sparse" aria-selected="false">Sparse</button>
-          <button type="button" class="style-tab" data-style="stride" aria-selected="false">Stride</button>
-        </div>
-
-        <div>
-          <audio id="style-mp3-audio" class="audio-player" controls="controls" preload="none">
-            <source id="style-mp3-source" src="music/acc-pro/mp3/arp.mp3" type="audio/mpeg" />
-            <a id="style-mp3-fallback" href="music/acc-pro/mp3/arp.mp3">MP3</a>
-          </audio>
-          <span class="demo-links">
-            | <a id="style-midi-link" href="music/acc-pro/midi/arp.mid">MIDI</a>
-          </span>
-        </div>
-
-        <div class="piano-roll-demo">
-          <midi-player id="style-midi-player" sound-font="https://storage.googleapis.com/magentadata/js/soundfonts/sgm_plus" visualizer="#style-visualizer"></midi-player>
-          <midi-visualizer id="style-visualizer" type="piano-roll"></midi-visualizer>
-        </div>
-      </div>
+      <p class="panel">
+        <strong>Academic Disclosure:</strong> These materials are provided solely for the purpose of double-blind peer review. Complete song structures are provided to allow for the evaluation of long-term accompaniment coherence and section-level transitions, which are core to the research's contribution. These materials will be removed after the paper review period, in compliance with applicable copyright laws to the maximum extent possible.
+      </p>
 
       <h2>Five Songs Used in the Paper Submission (60 MIDI Files: 12 Variations per Song)</h2>
       <div class="panel" id="five-songs-demo">
@@ -509,66 +477,6 @@
               })();
             });
           }
-
-          function initStyleTabs() {
-            var styles = {
-              arp: { mp3: 'music/acc-pro/mp3/arp.mp3', midi: 'music/acc-pro/midi/arp.mid' },
-              block: { mp3: 'music/acc-pro/mp3/block.mp3', midi: 'music/acc-pro/midi/block.mid' },
-              busy: { mp3: 'music/acc-pro/mp3/busy.mp3', midi: 'music/acc-pro/midi/busy.mid' },
-              dense: { mp3: 'music/acc-pro/mp3/dense.mp3', midi: 'music/acc-pro/midi/dense.mid' },
-              fast: { mp3: 'music/acc-pro/mp3/fast.mp3', midi: 'music/acc-pro/midi/fast.mid' },
-              gentle: { mp3: 'music/acc-pro/mp3/gentle.mp3', midi: 'music/acc-pro/midi/gentle.mid' },
-              loud: { mp3: 'music/acc-pro/mp3/loud.mp3', midi: 'music/acc-pro/midi/loud.mid' },
-              ostinato: { mp3: 'music/acc-pro/mp3/ostinato.mp3', midi: 'music/acc-pro/midi/ostinato.mid' },
-              quiet: { mp3: 'music/acc-pro/mp3/quiet.mp3', midi: 'music/acc-pro/midi/quiet.mid' },
-              slow: { mp3: 'music/acc-pro/mp3/slow.mp3', midi: 'music/acc-pro/midi/slow.mid' },
-              sparse: { mp3: 'music/acc-pro/mp3/sparse.mp3', midi: 'music/acc-pro/midi/sparse.mid' },
-              stride: { mp3: 'music/acc-pro/mp3/stride.mp3', midi: 'music/acc-pro/midi/stride.mid' }
-            };
-
-            var root = document.getElementById('style-demo');
-            if (!root) return;
-
-            var audio = document.getElementById('style-mp3-audio');
-            var audioSource = document.getElementById('style-mp3-source');
-            var mp3Fallback = document.getElementById('style-mp3-fallback');
-            var midiLink = document.getElementById('style-midi-link');
-            var styleMidiPlayer = document.getElementById('style-midi-player');
-            var styleVisualizer = document.getElementById('style-visualizer');
-            if (!audio || !audioSource || !mp3Fallback || !midiLink || !styleMidiPlayer || !styleVisualizer) return;
-
-            function loadStyle(styleKey) {
-              var entry = styles[styleKey];
-              if (!entry) return;
-
-              audio.pause();
-              audio.currentTime = 0;
-              audioSource.setAttribute('src', entry.mp3);
-              mp3Fallback.setAttribute('href', entry.mp3);
-              midiLink.setAttribute('href', entry.midi);
-              audio.load();
-
-              loadMidiInto(entry.midi, styleMidiPlayer, styleVisualizer, 'style-demo', { removeMelody: true });
-            }
-
-            var tabs = root.querySelectorAll('.style-tab');
-            for (var t = 0; t < tabs.length; t++) {
-              tabs[t].addEventListener('click', function () {
-                var key = this.getAttribute('data-style');
-                for (var k = 0; k < tabs.length; k++) {
-                  tabs[k].classList.remove('active');
-                  tabs[k].setAttribute('aria-selected', 'false');
-                }
-                this.classList.add('active');
-                this.setAttribute('aria-selected', 'true');
-                loadStyle(key);
-              });
-            }
-
-            loadStyle('arp');
-          }
-
-          initStyleTabs();
 
           function initFiveSongs() {
             var root = document.getElementById('five-songs-demo');
