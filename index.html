@@ -138,7 +138,7 @@
     <div class="container">
       <h1>Piano Accompaniment Generation (Anonymous Submission)</h1>
       <p class="panel">
-        This page provides MIDI files and interactive piano-roll visualizations for the associated research paper.
+        This page provides 12 MP3 files, 72 MIDI files, and interactive piano-roll visualizations for the associated research paper.
       </p>
       <p class="panel">
         <strong>Performance Note:</strong> All MIDI data preserves original human articulation and timing. These performances are unquantized; note onsets reflect natural expression and will not align to a rigid grid.
@@ -146,6 +146,45 @@
       <p class="panel">
         <strong>Academic Disclosure:</strong> These materials are provided solely for the purpose of double-blind peer review. Complete song structures are provided to allow for the evaluation of long-term accompaniment coherence and section-level transitions, which are core to the research's contribution. These materials will be removed after the paper review period, in compliance with applicable copyright laws to the maximum extent possible.
       </p>
+
+      <h2>12 Styles on Same Song with Vocal</h2>
+      <div class="panel" id="same-song-demo">
+        <p>
+          These demos use the Chinese pop song <em>Ren Jian Yan Huo</em> (Chinese: 人间烟火) performed by Cheng Xiang (程响) for academic evaluation only. Vocals are included solely to show alignment with the piano accompaniment. To help protect the original copyright, the vocal track is intentionally attenuated by 15&nbsp;dB, leaving only a faint trace for academic evaluation of the piano part. No other post-processing is applied. Because the training dataset focuses on Chinese pop, <em>Ren Jian Yan Huo</em> was selected to match that data bias.
+        </p>
+        <p>
+          The MP3 files were rendered in Logic Pro using the “Steinway Grand Piano” software instrument. The MIDI files are the original outputs produced directly by our system, trained on the POP909 dataset.
+        </p>
+        <div class="style-tabs" role="tablist" aria-label="Styles (same song)">
+          <button type="button" class="style-tab active" data-style="arp" aria-selected="true">Arpeggio</button>
+          <button type="button" class="style-tab" data-style="block" aria-selected="false">Block Chords</button>
+          <button type="button" class="style-tab" data-style="busy" aria-selected="false">Busy</button>
+          <button type="button" class="style-tab" data-style="dense" aria-selected="false">Dense</button>
+          <button type="button" class="style-tab" data-style="fast" aria-selected="false">Fast</button>
+          <button type="button" class="style-tab" data-style="gentle" aria-selected="false">Gentle</button>
+          <button type="button" class="style-tab" data-style="loud" aria-selected="false">Loud</button>
+          <button type="button" class="style-tab" data-style="ostinato" aria-selected="false">Ostinato</button>
+          <button type="button" class="style-tab" data-style="quiet" aria-selected="false">Quiet</button>
+          <button type="button" class="style-tab" data-style="slow" aria-selected="false">Slow</button>
+          <button type="button" class="style-tab" data-style="sparse" aria-selected="false">Sparse</button>
+          <button type="button" class="style-tab" data-style="stride" aria-selected="false">Stride</button>
+        </div>
+
+        <div>
+          <audio id="same-song-audio" class="audio-player" controls preload="none">
+            <source src="music/acc-pro/mp3/arp.mp3" type="audio/mpeg" />
+          </audio>
+          <span class="demo-links">
+            <a id="same-song-mp3-link" href="music/acc-pro/mp3/arp.mp3">MP3</a> |
+            <a id="same-song-midi-link" href="music/acc-pro/midi/arp.mid">MIDI</a>
+          </span>
+        </div>
+
+        <div class="piano-roll-demo">
+          <midi-player id="same-song-midi-player" sound-font="https://storage.googleapis.com/magentadata/js/soundfonts/sgm_plus" visualizer="#same-song-visualizer"></midi-player>
+          <midi-visualizer id="same-song-visualizer" type="piano-roll"></midi-visualizer>
+        </div>
+      </div>
 
       <h2>Five Songs Used in the Paper Submission (60 MIDI Files: 12 Variations per Song)</h2>
       <div class="panel" id="five-songs-demo">
@@ -478,6 +517,83 @@
             });
           }
 
+          function setActive(tabList, attrName, attrValue) {
+            if (!tabList) return;
+            var tabs = tabList.querySelectorAll('.style-tab');
+            for (var i = 0; i < tabs.length; i++) {
+              var isActive = tabs[i].getAttribute(attrName) === attrValue;
+              tabs[i].classList.toggle('active', isActive);
+              tabs[i].setAttribute('aria-selected', isActive ? 'true' : 'false');
+            }
+          }
+
+          function initSameSong() {
+            var root = document.getElementById('same-song-demo');
+            if (!root) return;
+
+            var styleTabList = root.querySelector('.style-tabs');
+            if (!styleTabList) return;
+
+            var audioEl = document.getElementById('same-song-audio');
+            var mp3Link = document.getElementById('same-song-mp3-link');
+            var midiLink = document.getElementById('same-song-midi-link');
+            var midiPlayer = document.getElementById('same-song-midi-player');
+            var visualizer = document.getElementById('same-song-visualizer');
+
+            var currentStyle = 'arp';
+
+            function mp3Url(style) {
+              return 'music/acc-pro/mp3/' + style + '.mp3';
+            }
+
+            function midiUrl(style) {
+              return 'music/acc-pro/midi/' + style + '.mid';
+            }
+
+            function load() {
+              var mp3 = mp3Url(currentStyle);
+              var midi = midiUrl(currentStyle);
+
+              if (mp3Link) mp3Link.setAttribute('href', mp3);
+              if (midiLink) midiLink.setAttribute('href', midi);
+
+              if (audioEl) {
+                var shouldResume = false;
+                try { shouldResume = !audioEl.paused; } catch (e) {}
+                try { audioEl.pause(); } catch (e2) {}
+                try { audioEl.currentTime = 0; } catch (e3) {}
+
+                var sourceEl = audioEl.querySelector('source');
+                if (sourceEl) sourceEl.setAttribute('src', mp3);
+                else audioEl.setAttribute('src', mp3);
+
+                try { audioEl.load(); } catch (e4) {}
+
+                if (shouldResume) {
+                  try {
+                    var playPromise = audioEl.play();
+                    if (playPromise && typeof playPromise.catch === 'function') playPromise.catch(function () {});
+                  } catch (e5) {}
+                }
+              }
+
+              if (midiPlayer && visualizer) {
+                loadMidiInto(midi, midiPlayer, visualizer, 'same-song', { removeMelody: true });
+              }
+            }
+
+            var styleTabs = styleTabList.querySelectorAll('.style-tab');
+            for (var t = 0; t < styleTabs.length; t++) {
+              styleTabs[t].addEventListener('click', function () {
+                currentStyle = this.getAttribute('data-style') || currentStyle;
+                setActive(styleTabList, 'data-style', currentStyle);
+                load();
+              });
+            }
+
+            load();
+          }
+
           function initFiveSongs() {
             var root = document.getElementById('five-songs-demo');
             if (!root) return;
@@ -498,15 +614,6 @@
               var url = midiUrl(currentSong, currentStyle);
               fiveMidiLink.setAttribute('href', url);
               loadMidiInto(url, fiveMidiPlayer, fiveVisualizer, 'five-songs', { removeMelody: true });
-            }
-
-            function setActive(tabList, attrName, attrValue) {
-              var tabs = tabList.querySelectorAll('.style-tab');
-              for (var i = 0; i < tabs.length; i++) {
-                var isActive = tabs[i].getAttribute(attrName) === attrValue;
-                tabs[i].classList.toggle('active', isActive);
-                tabs[i].setAttribute('aria-selected', isActive ? 'true' : 'false');
-              }
             }
 
             var songTabList = root.querySelector('.song-tabs');
@@ -538,6 +645,7 @@
             load();
           }
 
+          initSameSong();
           initFiveSongs();
         });
       })();
