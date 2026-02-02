@@ -14,6 +14,7 @@
         --tab-bg: #f5f7fb;
         --tab-bg-active: #e8f1ff;
         --tab-border-active: #79a7ff;
+        --melody-note: #06b6d4;
       }
 
       body {
@@ -141,16 +142,16 @@
         This page provides 12 MP3 files, 72 MIDI files, and interactive piano-roll visualizations for the associated research paper.
       </p>
       <p class="panel">
-        <strong>Performance Note:</strong> All MIDI data preserves original human articulation and timing. These performances are unquantized; note onsets reflect natural expression and will not align to a rigid grid.
+        <strong>Performance Note</strong> — All MIDI data preserves original human articulation and timing. These performances are unquantized. Note onsets reflect natural expression and will not align to a rigid grid.
       </p>
       <p class="panel">
-        <strong>Academic Disclosure:</strong> These materials are provided solely for the purpose of double-blind peer review. Complete song structures are provided to allow for the evaluation of long-term accompaniment coherence and section-level transitions, which are core to the research's contribution. These materials will be removed after the paper review period, in compliance with applicable copyright laws to the maximum extent possible.
+        <strong>Academic Disclosure</strong> — These materials are provided solely for the purpose of double-blind peer review. Complete song structures are provided to allow for the evaluation of long-term accompaniment coherence and section-level transitions, which are core to the research's contribution. These materials will be removed after the paper review period, in compliance with applicable copyright laws to the maximum extent possible.
       </p>
 
       <h2>12 Styles on Same Song with Vocal</h2>
       <div class="panel" id="same-song-demo">
         <p>
-          These demos use the Chinese pop song <em>Ren Jian Yan Huo</em> (Chinese: 人间烟火) performed by Cheng Xiang (程响) for academic evaluation only. Vocals are included solely to show alignment with the piano accompaniment. To help protect the original copyright, the vocal track is intentionally attenuated by 15&nbsp;dB, leaving only a faint trace for academic evaluation of the piano part. No other post-processing is applied. Because the training dataset focuses on Chinese pop, <em>Ren Jian Yan Huo</em> was selected to match that data bias.
+          These demos use the Chinese pop song <em>Ren Jian Yan Huo</em> (Chinese 人间烟火) performed by Cheng Xiang (程响) for academic evaluation only. Vocals are included solely to show alignment with the piano accompaniment. To help protect the original copyright, the vocal track is intentionally attenuated by 15&nbsp;dB, leaving only a faint trace for academic evaluation of the piano part. No other post-processing is applied. Because the training dataset focuses on Chinese pop, <em>Ren Jian Yan Huo</em> was selected to match that data bias.
         </p>
         <p>
           The MP3 files were rendered in Logic Pro using the “Steinway Grand Piano” software instrument. The MIDI files are the original outputs produced directly by our system, trained on the POP909 dataset.
@@ -186,7 +187,7 @@
         </div>
       </div>
 
-      <h2>Five Songs Used in the Paper Submission (60 MIDI Files: 12 Variations per Song)</h2>
+      <h2>Five Songs Used in the Paper Submission (60 MIDI Files, 12 Variations per Song)</h2>
       <div class="panel" id="five-songs-demo">
         <div class="style-tabs song-tabs" role="tablist" aria-label="Songs">
           <button type="button" class="style-tab active" data-song="dngl" aria-selected="true">Song 1</button>
@@ -211,16 +212,19 @@
           <button type="button" class="style-tab" data-style="stride" aria-selected="false">Stride</button>
         </div>
 
-        <div>
-          <span class="demo-links">
-            <a id="five-midi-link" href="music/acc-pro/5songs/dngl/arp.mid">MIDI</a>
-          </span>
-        </div>
+	        <div>
+	          <span class="demo-links">
+	            <a id="five-midi-link" href="music/acc-pro/5songs/dngl/arp.mid">MIDI</a>
+	          </span>
+		        </div>
+		        <p>
+		          <strong>Melody line</strong> — Cyan indicates the melody line, and a flute timbre is used to make it audibly distinct for easier evaluation. We use a general vocal-to-MIDI conversion algorithm. Melody accuracy is below that of commercial software, which is outside the scope of this study. The melody line is provided only for evaluating the piano accompaniment.
+		        </p>
 
-        <div class="piano-roll-demo">
-          <midi-player id="five-midi-player" sound-font="https://storage.googleapis.com/magentadata/js/soundfonts/sgm_plus" visualizer="#five-visualizer"></midi-player>
-          <midi-visualizer id="five-visualizer" type="piano-roll"></midi-visualizer>
-        </div>
+	        <div class="piano-roll-demo">
+	          <midi-player id="five-midi-player" sound-font="https://storage.googleapis.com/magentadata/js/soundfonts/sgm_plus" visualizer="#five-visualizer"></midi-player>
+	          <midi-visualizer id="five-visualizer" type="piano-roll"></midi-visualizer>
+	        </div>
       </div>
     </div>
 
@@ -240,12 +244,20 @@
             );
           }
 
-          function forcePiano(ns) {
+          function forcePiano(ns, melodyInstrument, options) {
             try {
               if (!ns || !ns.notes) return;
+              options = options || {};
+              var pianoProgram = (typeof options.pianoProgram === 'number') ? options.pianoProgram : 0;
+              var melodyProgram = (typeof options.melodyProgram === 'number') ? options.melodyProgram : null;
               for (var i = 0; i < ns.notes.length; i++) {
-                ns.notes[i].program = 0;
-                ns.notes[i].isDrum = false;
+                var note = ns.notes[i];
+                var inst = (typeof note.instrument === 'number') ? note.instrument : 0;
+                note.isDrum = false;
+                note.program = pianoProgram;
+                if (melodyProgram !== null && melodyInstrument !== null && melodyInstrument !== undefined && inst === melodyInstrument) {
+                  note.program = melodyProgram;
+                }
               }
             } catch (e) {}
           }
@@ -333,6 +345,44 @@
             } catch (e) {
               return null;
             }
+          }
+
+          function escapeCssIdent(ident) {
+            try {
+              if (window.CSS && typeof window.CSS.escape === 'function') return window.CSS.escape(ident);
+            } catch (e) {}
+            return String(ident).replace(/[^a-zA-Z0-9_-]/g, function (c) { return '\\' + c; });
+          }
+
+          function setMelodyNoteStyle(visualizerEl, prefix, melodyInstrument) {
+            if (!visualizerEl) return;
+            var styleId = prefix + '-melody-style';
+            var styleEl = document.getElementById(styleId);
+            var hasMelody = melodyInstrument !== null && melodyInstrument !== undefined && isFinite(melodyInstrument);
+            if (!styleEl && !hasMelody) return;
+            if (!styleEl) {
+              styleEl = document.createElement('style');
+              styleEl.setAttribute('id', styleId);
+              document.head.appendChild(styleEl);
+            }
+            if (!hasMelody) {
+              styleEl.textContent = '';
+              return;
+            }
+
+            var vizId = visualizerEl.getAttribute('id') || '';
+            if (!vizId) {
+              vizId = prefix + '-visualizer';
+              visualizerEl.setAttribute('id', vizId);
+            }
+            var scope = '#' + escapeCssIdent(vizId);
+            var inst = String(parseInt(melodyInstrument, 10));
+            styleEl.textContent =
+              scope + ' svg rect.note[data-instrument="' + inst + '"] {' +
+              ' fill: var(--melody-note, #e11d48); opacity: 0.95; }' +
+              '\n' +
+              scope + ' svg rect.note.active[data-instrument="' + inst + '"] {' +
+              ' stroke: rgba(0,0,0,0.35); stroke-width: 1.25; }';
           }
 
           function ensureGrid(visualizerEl) {
@@ -479,10 +529,14 @@
             }
 
             urlToNoteSequence(midiUrl).then(function (ns) {
-              forcePiano(ns);
+              var melodyInstrument = null;
+              if (options.removeMelody || options.highlightMelody || typeof options.melodyProgram === 'number') {
+                melodyInstrument = detectMelodyInstrument(ns);
+              }
+
+              forcePiano(ns, melodyInstrument, options);
 
               if (options.removeMelody) {
-                var melodyInstrument = detectMelodyInstrument(ns);
                 if (melodyInstrument !== null && melodyInstrument !== undefined) {
                   try {
                     var filtered = [];
@@ -493,6 +547,8 @@
                   } catch (e) {}
                 }
               }
+
+              setMelodyNoteStyle(visualizerEl, prefix, options.highlightMelody ? melodyInstrument : null);
 
               try {
                 visualizerEl.config = {
@@ -578,7 +634,7 @@
               }
 
               if (midiPlayer && visualizer) {
-                loadMidiInto(midi, midiPlayer, visualizer, 'same-song', { removeMelody: true });
+                loadMidiInto(midi, midiPlayer, visualizer, 'same-song', { removeMelody: true, pianoProgram: 0 });
               }
             }
 
@@ -613,7 +669,7 @@
             function load() {
               var url = midiUrl(currentSong, currentStyle);
               fiveMidiLink.setAttribute('href', url);
-              loadMidiInto(url, fiveMidiPlayer, fiveVisualizer, 'five-songs', { removeMelody: true });
+              loadMidiInto(url, fiveMidiPlayer, fiveVisualizer, 'five-songs', { highlightMelody: true, pianoProgram: 0, melodyProgram: 73 });
             }
 
             var songTabList = root.querySelector('.song-tabs');
